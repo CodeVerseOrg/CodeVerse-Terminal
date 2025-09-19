@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+  background: #0a0a0a;
+  color: #00ff66;
+  font-family: monospace;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100vh;
+  padding: 20px;
+}
