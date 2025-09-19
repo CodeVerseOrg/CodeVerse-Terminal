@@ -1,27 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import "./index.css";
 
 export default function App() {
   const [history, setHistory] = useState([]);
   const [input, setInput] = useState("");
+  const [pointer, setPointer] = useState(-1);
+  const terminalEndRef = useRef(null);
 
   const prompt = "codeverse@org:~$";
 
-  // Handle user commands
+  // Scroll to bottom when history updates
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [history]);
+
+  // Handle commands
   const handleCommand = async (cmd) => {
     let output = "";
-    const args = cmd.split(" ");
+    const args = cmd.trim().split(" ");
 
     switch (args[0].toLowerCase()) {
       case "help":
-        output = `
-Available commands:
-- help: Show this help message
-- about: About CodeVerseOrg
-- devs: Show developer info (SmitroniX)
-- repos: List CodeVerseOrg repos
-- repo <name>: Show details of a specific repo
-- clear: Clear the terminal
-        `;
+        output = `Available commands:
+- help → Show this help message
+- about → About CodeVerseOrg
+- devs → Show developer info (SmitroniX)
+- repos → List CodeVerseOrg repos
+- repo <name> → Show details of a specific repo
+- clear → Clear the terminal`;
         break;
 
       case "about":
@@ -37,7 +43,6 @@ Available commands:
             "https://gh-pinned-repos.egoist.dev/?username=SmitroniX"
           );
           const pinned = await pinnedRes.json();
-
           output = `👨‍💻 ${user.name || user.login}
 ${user.bio || "No bio"}
 GitHub: ${user.html_url}
@@ -45,13 +50,7 @@ Public Repos: ${user.public_repos}
 Followers: ${user.followers}
 
 📌 Pinned Repos:
-${pinned
-  .map(
-    (r) => `- ${r.repo} ⭐${r.stars}
-  ${r.link}`
-  )
-  .join("\n")}
-          `;
+${pinned.map((r) => `- ${r.repo} ⭐${r.stars}\n  ${r.link}`).join("\n")}`;
         } catch {
           output = "⚠️ Failed to fetch developer info.";
         }
@@ -63,8 +62,6 @@ ${pinned
             "https://api.github.com/orgs/CodeVerseOrg/repos?per_page=100&sort=updated"
           );
           const repos = await res.json();
-          if (!Array.isArray(repos)) throw new Error();
-
           output =
             "📂 CodeVerseOrg Repositories:\n" +
             repos
@@ -88,14 +85,12 @@ ${pinned
             `https://api.github.com/repos/CodeVerseOrg/${args[1]}`
           );
           const repo = await res.json();
-          if (repo.message) {
-            output = `⚠️ Repo '${args[1]}' not found.`;
-          } else {
-            output = `📦 ${repo.full_name}
+          output = repo.message
+            ? `⚠️ Repo '${args[1]}' not found.`
+            : `📦 ${repo.full_name}
 ${repo.description || "No description"}
 ⭐ Stars: ${repo.stargazers_count} | 🍴 Forks: ${repo.forks_count}
 🔗 ${repo.html_url}`;
-          }
         } catch {
           output = "⚠️ Failed to fetch repository.";
         }
@@ -116,50 +111,63 @@ ${repo.description || "No description"}
     setHistory((prev) => [...prev, { cmd, output }]);
   };
 
+  // Handle submit
   const handleSubmit = (e) => {
     e.preventDefault();
-    handleCommand(input.trim());
+    if (!input.trim()) return;
+    handleCommand(input);
     setInput("");
+    setPointer(-1);
   };
 
+  // Handle arrow key navigation
+  const handleKeyDown = (e) => {
+    if (e.key === "ArrowUp") {
+      setPointer((prev) =>
+        prev < history.length - 1 ? prev + 1 : history.length - 1
+      );
+    } else if (e.key === "ArrowDown") {
+      setPointer((prev) => (prev > 0 ? prev - 1 : -1));
+    }
+  };
+
+  useEffect(() => {
+    if (pointer >= 0 && pointer < history.length) {
+      setInput(history[history.length - 1 - pointer].cmd);
+    } else if (pointer === -1) {
+      setInput("");
+    }
+  }, [pointer, history]);
+
   return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: "900px",
-        color: "#00ff66",
-        fontFamily: "monospace",
-        fontSize: "16px",
-      }}
-    >
+    <div className="terminal">
       <div>
         <p>Welcome to CodeVerseOrg Terminal 🌐</p>
         <p>Type 'help' to see available commands.</p>
         {history.map((entry, i) => (
           <div key={i}>
-            <span>{prompt} {entry.cmd}</span>
-            <pre style={{ whiteSpace: "pre-wrap" }}>{entry.output}</pre>
+            <div>
+              <span className="prompt">{prompt} </span>
+              <span>{entry.cmd}</span>
+            </div>
+            <pre className="output">{entry.output}</pre>
           </div>
         ))}
       </div>
 
       <form onSubmit={handleSubmit}>
-        <span>{prompt} </span>
+        <span className="prompt">{prompt} </span>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          style={{
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            color: "#00ff66",
-            fontFamily: "monospace",
-            fontSize: "16px",
-            width: "70%",
-          }}
+          onKeyDown={handleKeyDown}
+          className="input"
           autoFocus
         />
+        <span className="cursor">█</span>
       </form>
+
+      <div ref={terminalEndRef}></div>
     </div>
   );
 }
