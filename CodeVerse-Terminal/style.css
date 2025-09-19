@@ -1,0 +1,35 @@
+body {
+  background: #000;
+  color: #00ff00;
+  font-family: monospace;
+  margin: 0;
+  padding: 10px;
+}
+
+#terminal {
+  height: 100vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.prompt {
+  color: #0f0;
+}
+
+#cmd {
+  background: transparent;
+  border: none;
+  color: #0f0;
+  font-family: monospace;
+  font-size: 1em;
+  outline: none;
+  width: 70%;
+}
+
+a {
+  color: #00ffff;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
